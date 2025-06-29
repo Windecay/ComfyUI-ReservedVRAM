@@ -1,5 +1,5 @@
-from comfy.model_management import set_extra_reserved_vram
 from typing import Any as any_type
+from comfy import model_management
 
 class AlwaysEqualProxy(str):
     def __eq__(self, _):
@@ -29,15 +29,14 @@ class ReservedVRAMSetter:
     OUTPUT_NODE = True
     FUNCTION = "set_vram"
     CATEGORY = "VRAM"
-
     def set_vram(self, anything, reserved, unique_id=None, extra_pnginfo=None):
-        set_extra_reserved_vram(reserved)
+        model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
+        print(f'set EXTRA_RESERVED_VRAM={reserved}GB')
         return (anything,)
 
 NODE_CLASS_MAPPINGS = {
     "ReservedVRAMSetter": ReservedVRAMSetter
 }
-
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ReservedVRAMSetter": "Set Reserved VRAM(GB) ⚙️"
 }
