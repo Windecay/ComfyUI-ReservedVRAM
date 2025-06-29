@@ -14,10 +14,11 @@ class ReservedVRAMSetter:
         return {
             "required": {
                 "anything": (any_type, {}),
-                "reserved": ("FLOAT", {  # 修改类型为FLOAT
-                    "default": 0.0,      # 默认值改为浮点数
-                    "min": 0.0,          # 最小值为0.0
-                    "step": 0.1          # 设置步进为0.1
+                "reserved": ("FLOAT", {
+                    "default": 1.0,
+                    "min": 0.0,
+                    "step": 0.1,
+                    "display": "reserved (GB)" 
                 }),
             },
             "hidden": {"unique_id": "UNIQUE_ID", "extra_pnginfo": "EXTRA_PNGINFO"}
@@ -38,5 +39,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "ReservedVRAMSetter": "Set Reserved VRAM ⚙️"
+    "ReservedVRAMSetter": "Set Reserved VRAM(GB) ⚙️"
 }
