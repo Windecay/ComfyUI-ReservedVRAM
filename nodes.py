@@ -66,6 +66,7 @@ class ReservedVRAMSetter:
                 if total and used:
                     # 自动计算预留显存：使用当前已用显存+reserved设置值作为预留值
                     auto_reserved = used + reserved
+                    auto_reserved = max(0, auto_reserved)  # 确保不小于0
                     model_management.EXTRA_RESERVED_VRAM = int(auto_reserved * 1024 * 1024 * 1024)
                     print(f'set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB)')
                 else:
@@ -76,6 +77,7 @@ class ReservedVRAMSetter:
                 print(f'set EXTRA_RESERVED_VRAM={reserved}GB (pynvml未安装，auto选项不可用)')
         else:
             # 手动模式
+            reserved = max(0, reserved)
             model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
             print(f'set EXTRA_RESERVED_VRAM={reserved}GB (手动模式)')
 

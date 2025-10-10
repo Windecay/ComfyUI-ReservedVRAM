@@ -1,1 +1,1 @@
-pynvml
+nvidia-ml-py
