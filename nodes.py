@@ -40,8 +40,8 @@ class ReservedVRAMSetter:
             "required": {
                 "anything": (any_type, {}),
                 "reserved": ("FLOAT", {
-                    "default": 1.0,
-                    "min": 0.6,
+                    "default": 0.6,
+                    "min": -2.0,
                     "step": 0.1,
                     "display": "reserved (GB)"
                 }),
