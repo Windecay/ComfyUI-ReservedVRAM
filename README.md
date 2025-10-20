@@ -1,6 +1,19 @@
 A simple node that can dynamically adjust the reserved memory of a workflow in real-time, used to avoid the utilization of shared memory.
 
+更新
+2025-10-21增强节点功能
+1，可以作为随机种子节点，每次运行均检测和和修改显存策略。可选开关。
+2，前置输入可以不接。增加后置输出随机种子和预留数值。后置输出也可以不接。
+3，增加前置清理显存的开关，可以作为显存清理节点使用。可以选择在输出前用手动模式恢复环境变量为默认（0.6GB）。
+4，增加最大预留值，在Auto档生效，某些情况防止预留过大，但也会削弱Auto的能力。
 new
+2025-10-21 Enhanced Node Features
+1. Can function as a random seed node, detecting and modifying VRAM strategy with each run. Optional toggle.
+2. Front-end input can be left unconnected. Added back-end output for random seed and reserved value. Back-end output can also be left unconnected.
+3. Added a front-end VRAM cleanup toggle, allowing use as a VRAM cleanup node. Option to restore environment variables to default (0.6GB) manually before output.
+4. Added maximum reserved value, effective in Auto mode, preventing excessive reservation in certain cases while slightly reducing Auto mode's capability.
+<img width="1919" height="1461" alt="image" src="https://github.com/user-attachments/assets/5b3af05d-5051-4fc9-b2e7-fd7cb7cfe719" />
+
 2025-10-10新增自动模式，自动模式会检测系统“已使用”的显存数量，再叠加用户设置值进行预留。避免多进程用户因为显存问题卡住运行。
 
 预留数值可以为负值，配合自动模式计算用。
