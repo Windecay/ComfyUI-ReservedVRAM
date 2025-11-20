@@ -1,6 +1,6 @@
 [project]
 name = "reservedvram"
-description = "A simple node that can dynamically adjust the reserved memory of a workflow in real-time, used to avoid the utilization of shared memory."
+description = "A simple node that can dynamically adjust the reserved memory of a workflow in real-time."
 version = "1.0.0"
 license = {file = "LICENSE"} 
 # classifiers = [
@@ -29,7 +29,7 @@ Documentation = "https://github.com/Windecay/ComfyUI-ReservedVRAM/wiki"
 "Bug Tracker" = "https://github.com/Windecay/ComfyUI-ReservedVRAM/issues"
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "windecay"
 DisplayName = "ComfyUI-ReservedVRAM"
 Icon = ""
 includes = [] 
