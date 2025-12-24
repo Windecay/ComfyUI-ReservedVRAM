@@ -14,8 +14,9 @@ random.setstate(initial_random_state)
 
 def get_gpu_memory_info():
     """返回假GPU显存信息"""
-    total = 8.0  # 8GB假显存
+    total = 48.0  # 8GB假显存
     used = 1.0   # 1GB假使用量
+
     return total, used
 
 def new_random_seed():
