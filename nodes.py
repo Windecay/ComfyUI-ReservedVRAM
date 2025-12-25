@@ -23,7 +23,7 @@ random.setstate(initial_random_state)
 def get_gpu_memory_info():
     """获取GPU显存信息"""
     if  not pynvml_installed:
-        fake_total = 8.0  # GB
+        fake_total = 48.0  # GB
         fake_used = 2.0   # GB
         return fake_total, fake_used
 
