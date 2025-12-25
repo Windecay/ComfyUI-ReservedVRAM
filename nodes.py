@@ -10,7 +10,6 @@ try:
     try:
         pynvml.nvmlInit()
         gpu_available = True
-        print("[ReservedVRAM]检测到GPU，启用GPU相关功能")
     except pynvml.NVMLError:
         print("[ReservedVRAM]GPU初始化失败，使用兼容模式")
 except ImportError:
@@ -23,11 +22,10 @@ reserved_vram_random_state = random.getstate()
 random.setstate(initial_random_state)
 
 def get_gpu_memory_info():
-    """获取GPU显存信息，如果没有GPU则返回模拟数据"""
+    """获取GPU显存信息"""
     if not gpu_available:
         fake_total = 8.0  # GB
         fake_used = 2.0   # GB
-        print("[ReservedVRAM]使用模拟GPU数据")
         return fake_total, fake_used
 
     try:
@@ -37,7 +35,7 @@ def get_gpu_memory_info():
         used = memory_info.used / (1024 * 1024 * 1024)    # 转换为GB
         return total, used
     except Exception as e:
-        print(f"[ReservedVRAM]获取GPU信息出错，使用模拟数据: {e}")
+        print(f"[ReservedVRAM]获取GPU信息出错: {e}")
         return 8.0, 2.0
 
 def new_random_seed():
@@ -123,9 +121,8 @@ class ReservedVRAMSetter:
 
         final_reserved_vram = 0.0
         
-        # 统一的VRAM设置逻辑
+        # 设置VRAM
         def set_extra_vram(gb_value):
-            """设置EXTRA_RESERVED_VRAM的辅助函数"""
             if gpu_available:
                 model_management.EXTRA_RESERVED_VRAM = int(gb_value * 1024 * 1024 * 1024)
             else:
@@ -135,7 +132,6 @@ class ReservedVRAMSetter:
             total, used = get_gpu_memory_info()
             if total is not None and used is not None:
                 auto_reserved = max(0, used + reserved)  # 确保不小于0
-                
                 # 应用最大限制
                 if auto_max_reserved > 0:
                     auto_reserved = min(auto_reserved, auto_max_reserved)
@@ -147,7 +143,6 @@ class ReservedVRAMSetter:
                 set_extra_vram(auto_reserved)
                 final_reserved_vram = round(auto_reserved, 2)
             else:
-                # 备用方案：使用手动值
                 set_extra_vram(reserved)
                 print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (自动模式失败，使用手动值)')
                 final_reserved_vram = round(reserved, 2)
