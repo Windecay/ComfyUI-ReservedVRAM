@@ -4,7 +4,17 @@ import random
 import time
 import gc
 
-pynvml_installed = True
+gpu_available = False
+try:
+    import pynvml
+    try:
+        pynvml.nvmlInit()
+        gpu_available = True
+        print("[ReservedVRAM]检测到GPU，启用GPU相关功能")
+    except pynvml.NVMLError:
+        print("[ReservedVRAM]GPU初始化失败，使用兼容模式")
+except ImportError:
+    print("[ReservedVRAM]未安装pynvml，使用无GPU兼容模式")
 
 # 初始化随机状态
 initial_random_state = random.getstate()
@@ -13,10 +23,22 @@ reserved_vram_random_state = random.getstate()
 random.setstate(initial_random_state)
 
 def get_gpu_memory_info():
-    """返回假GPU显存信息"""
-    total = 8.0  # 8GB假显存
-    used = 1.0   # 1GB假使用量
-    return total, used
+    """获取GPU显存信息，如果没有GPU则返回模拟数据"""
+    if not gpu_available:
+        fake_total = 8.0  # GB
+        fake_used = 2.0   # GB
+        print("[ReservedVRAM]使用模拟GPU数据")
+        return fake_total, fake_used
+
+    try:
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+        total = memory_info.total / (1024 * 1024 * 1024)  # 转换为GB
+        used = memory_info.used / (1024 * 1024 * 1024)    # 转换为GB
+        return total, used
+    except Exception as e:
+        print(f"[ReservedVRAM]获取GPU信息出错，使用模拟数据: {e}")
+        return 8.0, 2.0
 
 def new_random_seed():
     """生成一个新的随机种子"""
@@ -31,9 +53,9 @@ def new_random_seed():
 class AlwaysEqualProxy(str):
     def __eq__(self, _):
         return True
-
     def __ne__(self, _):
         return False
+
 any_type = AlwaysEqualProxy("*")
 
 class ReservedVRAMSetter:
@@ -70,7 +92,6 @@ class ReservedVRAMSetter:
             "hidden": {"unique_id": "UNIQUE_ID", "extra_pnginfo": "EXTRA_PNGINFO"}
         }
 
-
     RETURN_TYPES = (any_type, "INT", "FLOAT")
     RETURN_NAMES = ("output", "SEED", "Reserved(GB)")
     OUTPUT_NODE = True
@@ -83,39 +104,59 @@ class ReservedVRAMSetter:
         if seed == -1:
             return new_random_seed()
         return seed
+
     def cleanGPUUsedForce(self):
-        """强制清理GPU显存"""
-        gc.collect()
-        model_management.unload_all_models()
-        model_management.soft_empty_cache()
+        """强制清理GPU显存，如果没有GPU则跳过"""
+        if gpu_available:
+            gc.collect()
+            model_management.unload_all_models()
+            model_management.soft_empty_cache()
+            print("[ReservedVRAM]GPU显存清理完成")
+        else:
+            print("[ReservedVRAM]无GPU环境，跳过显存清理")
 
     def set_vram(self, reserved, mode="auto", seed=0, auto_max_reserved=0.0, clean_gpu_before=True, anything=None, unique_id=None, extra_pnginfo=None):
-        # 如果启用了前置清理显存，则执行清理操作
+        # 前置清理
         if clean_gpu_before:
             print("[ReservedVRAM]执行前置GPU显存清理...")
             self.cleanGPUUsedForce()
-            print("[ReservedVRAM]GPU显存清理完成")
 
         final_reserved_vram = 0.0
+        
+        # 统一的VRAM设置逻辑
+        def set_extra_vram(gb_value):
+            """设置EXTRA_RESERVED_VRAM的辅助函数"""
+            if gpu_available:
+                model_management.EXTRA_RESERVED_VRAM = int(gb_value * 1024 * 1024 * 1024)
+            else:
+                print("[ReservedVRAM]无GPU环境，跳过实际VRAM设置")
 
         if mode == "auto":
-            # 自动模式
             total, used = get_gpu_memory_info()
-            auto_reserved = used + reserved
-            auto_reserved = max(0, auto_reserved)
-            if auto_max_reserved > 0:
-                auto_reserved = min(auto_reserved, auto_max_reserved)
-                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB, 最大限制值{auto_max_reserved:.2f}GB)')
+            if total is not None and used is not None:
+                auto_reserved = max(0, used + reserved)  # 确保不小于0
+                
+                # 应用最大限制
+                if auto_max_reserved > 0:
+                    auto_reserved = min(auto_reserved, auto_max_reserved)
+                
+                gpu_status = "模拟数据" if not gpu_available else "实际GPU"
+                limit_info = f", 最大限制值{auto_max_reserved:.2f}GB" if auto_max_reserved > 0 else ""
+                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: {gpu_status}总显存={total:.2f}GB, 已用={used:.2f}GB{limit_info})')
+                
+                set_extra_vram(auto_reserved)
+                final_reserved_vram = round(auto_reserved, 2)
             else:
-                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB)')
-            model_management.EXTRA_RESERVED_VRAM = int(auto_reserved * 1024 * 1024 * 1024)
-            final_reserved_vram = round(auto_reserved, 2)
+                # 备用方案：使用手动值
+                set_extra_vram(reserved)
+                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (自动模式失败，使用手动值)')
+                final_reserved_vram = round(reserved, 2)
         else:
             # 手动模式
-            reserved = max(0, reserved)
-            model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
-            print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (手动模式)，忽略最大限制值')
-            final_reserved_vram = round(reserved, 2)
+            manual_reserved = max(0, reserved)
+            set_extra_vram(manual_reserved)
+            print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={manual_reserved}GB (手动模式)')
+            final_reserved_vram = round(manual_reserved, 2)
 
         from comfy_execution.graph import ExecutionBlocker
         output_value = anything if anything is not None else ExecutionBlocker(None)
