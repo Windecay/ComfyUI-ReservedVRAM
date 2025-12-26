@@ -3,6 +3,7 @@ from comfy import model_management
 import random
 import time
 import gc
+
 # 尝试导入pynvml库，如果没有安装则提供相应提示
 try:
     import pynvml
@@ -20,8 +21,10 @@ random.setstate(initial_random_state)
 
 def get_gpu_memory_info():
     """获取GPU显存信息"""
-    if not pynvml_installed:
-        return None, None
+    if  not pynvml_installed:
+        fake_total = 48.0  # GB
+        fake_used = 2.0   # GB
+        return fake_total, fake_used
 
     try:
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)
@@ -31,7 +34,9 @@ def get_gpu_memory_info():
         return total, used
     except Exception as e:
         print(f"[ReservedVRAM]获取GPU信息出错: {e}")
-        return None, None
+        fake_total = 48.0  # GB
+        fake_used = 2.0   # GB
+        return fake_total, fake_used
 
 def new_random_seed():
     """生成一个新的随机种子"""
@@ -105,6 +110,14 @@ class ReservedVRAMSetter:
         model_management.soft_empty_cache()
 
     def set_vram(self, reserved, mode="auto", seed=0, auto_max_reserved=0.0, clean_gpu_before=True, anything=None, unique_id=None, extra_pnginfo=None):
+        import torch
+        # 检查CUDA是否可用
+        if not torch.cuda.is_available():
+            print("[ReservedVRAM]警告：CUDA不可用")
+            from comfy_execution.graph import ExecutionBlocker
+            output_value = anything if anything is not None else ExecutionBlocker(None)
+            return (output_value, seed, 0.0)
+        
         # 如果启用了前置清理显存，则执行清理操作
         if clean_gpu_before:
             print("[ReservedVRAM]执行前置GPU显存清理...")
