@@ -3,15 +3,17 @@ from comfy import model_management
 import random
 import time
 import gc
+import torch
 
 # 尝试导入pynvml库，如果没有安装则提供相应提示
-try:
-    import pynvml
-    pynvml_installed = True
-    pynvml.nvmlInit()
-except ImportError:
-    pynvml_installed = False
-    print("[ReservedVRAM]警告：未安装pynvml库，auto选项将不可用。")
+if torch.cuda.is_available():
+    try:
+        import pynvml
+        pynvml_installed = True
+        pynvml.nvmlInit()
+    except Exception as e:
+        pynvml_installed = False
+        print(f"[ReservedVRAM]警告：发生错误: {e}")
 
 # 初始化随机状态
 initial_random_state = random.getstate()
@@ -110,7 +112,6 @@ class ReservedVRAMSetter:
         model_management.soft_empty_cache()
 
     def set_vram(self, reserved, mode="auto", seed=0, auto_max_reserved=0.0, clean_gpu_before=True, anything=None, unique_id=None, extra_pnginfo=None):
-        import torch
         # 检查CUDA是否可用
         if not torch.cuda.is_available():
             print("[ReservedVRAM]警告：CUDA不可用")
