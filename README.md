@@ -1,6 +1,8 @@
-A simple node that can dynamically adjust the reserved memory of a workflow in real-time, used to avoid the utilization of shared memory.
+A simple node that can dynamically adjust the reserved memory of a workflow in real-time.
 
 更新
+##新版ComfyUI具有Pin Memory特性，会直接显示部分卸载到内存的模型为共享显存的使用。只要调节到采样速度和显卡功耗正常就可以。
+
 2025-10-21增强节点功能
 
 1，可以作为随机种子节点，每次运行均检测和和修改显存策略。可选开关。
@@ -24,7 +26,7 @@ new
 预留数值可以为负值，配合自动模式计算用。
 —————————————————————————————————————————
 
-一个可以实时调节工作流预留显存的简单节点，可以用于规避共享显存的使用，跑满显卡最大功率，解除显存焦虑。
+一个可以实时调节工作流预留显存的简单节点，跑满显卡最大功率，解除显存焦虑。
 
 接在排行较前的节点处即可，观察windows任务管理器共享显存溢出多少，就需要设置保留多少（可以略微多一点），填入该数值。运行工作流实时生效，输入单位是GB。
 
