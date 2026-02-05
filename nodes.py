@@ -6,10 +6,17 @@ import gc
 # 尝试导入pynvml库，如果没有安装则提供相应提示
 try:
     import pynvml
-    pynvml_installed = True
-    pynvml.nvmlInit()
+    try:
+        pynvml.nvmlInit()
+        pynvml_installed = True
+    except Exception as e:
+        pynvml_installed = False
+        pynvml = None
+        print("[ReservedVRAM]警告：pynvml可导入但NVML初始化失败，auto选项将不可用。")
+        print(f"[ReservedVRAM]NVML初始化失败: {e}")
 except ImportError:
     pynvml_installed = False
+    pynvml = None
     print("[ReservedVRAM]警告：未安装pynvml库，auto选项将不可用。")
 
 # 初始化随机状态
@@ -20,18 +27,32 @@ random.setstate(initial_random_state)
 
 def get_gpu_memory_info():
     """获取GPU显存信息"""
-    if not pynvml_installed:
-        return None, None
+    if pynvml_installed and pynvml is not None:
+        try:
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            total = memory_info.total / (1024 * 1024 * 1024)
+            used = memory_info.used / (1024 * 1024 * 1024)
+            return total, used
+        except Exception as e:
+            print(f"[ReservedVRAM]获取GPU信息出错(NVML): {e}")
 
     try:
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-        memory_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        total = memory_info.total / (1024 * 1024 * 1024)  # 转换为GB
-        used = memory_info.used / (1024 * 1024 * 1024)    # 转换为GB
-        return total, used
+        import torch
+
+        if (
+            hasattr(torch, "cuda")
+            and torch.cuda.is_available()
+            and hasattr(torch.cuda, "mem_get_info")
+        ):
+            free, total = torch.cuda.mem_get_info()
+            total_gb = total / (1024 * 1024 * 1024)
+            used_gb = (total - free) / (1024 * 1024 * 1024)
+            return total_gb, used_gb
     except Exception as e:
-        print(f"[ReservedVRAM]获取GPU信息出错: {e}")
-        return None, None
+        print(f"[ReservedVRAM]获取GPU信息出错(torch): {e}")
+
+    return None, None
 
 def new_random_seed():
     """生成一个新的随机种子"""
@@ -114,28 +135,22 @@ class ReservedVRAMSetter:
         final_reserved_vram = 0.0
 
         if mode == "auto":
-            if pynvml_installed:
-                total, used = get_gpu_memory_info()
-                if total and used:
-                    # 自动计算预留显存
-                    auto_reserved = used + reserved
-                    auto_reserved = max(0, auto_reserved)  # 确保不小于0
-                    # 如果设置了最大预留值且大于0，则应用限制
-                    if auto_max_reserved > 0:
-                        auto_reserved = min(auto_reserved, auto_max_reserved)
-                        print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB, 最大限制值{auto_max_reserved:.2f}GB)')
-                    else:
-                        print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB)')
-                    model_management.EXTRA_RESERVED_VRAM = int(auto_reserved * 1024 * 1024 * 1024)
-                    final_reserved_vram = round(auto_reserved, 2)
+            total, used = get_gpu_memory_info()
+            if total is not None and used is not None:
+                auto_reserved = used + reserved
+                auto_reserved = max(0, auto_reserved)
+                if auto_max_reserved > 0:
+                    auto_reserved = min(auto_reserved, auto_max_reserved)
+                    print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB, 最大限制值{auto_max_reserved:.2f}GB)')
                 else:
-                    model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
-                    print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (自动模式失败，使用手动值)')
-                    final_reserved_vram = round(reserved, 2)
+                    print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB)')
+                model_management.EXTRA_RESERVED_VRAM = int(auto_reserved * 1024 * 1024 * 1024)
+                final_reserved_vram = round(auto_reserved, 2)
             else:
-                model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
-                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (pynvml未安装，auto选项不可用)')
-                final_reserved_vram = round(reserved, 2)
+                manual_reserved = max(0, reserved)
+                model_management.EXTRA_RESERVED_VRAM = int(manual_reserved * 1024 * 1024 * 1024)
+                print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={manual_reserved}GB (自动模式不可用，使用手动值)')
+                final_reserved_vram = round(manual_reserved, 2)
         else:
             # 手动模式
             reserved = max(0, reserved)
