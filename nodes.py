@@ -54,6 +54,36 @@ def get_gpu_memory_info():
 
     return None, None
 
+def set_reserved_vram(reserved_gb):
+    reserved_gb = max(0.0, float(reserved_gb))
+    reserved_vram = int(reserved_gb * 1024 * 1024 * 1024)
+    if hasattr(model_management, "set_extra_reserved_vram"):
+        model_management.set_extra_reserved_vram(reserved_gb)
+    else:
+        model_management.EXTRA_RESERVED_VRAM = reserved_vram
+    sync_dynamic_vram_headroom(reserved_vram)
+
+def sync_dynamic_vram_headroom(reserved_vram):
+    try:
+        import comfy.memory_management as memory_management
+
+        if not getattr(memory_management, "aimdo_enabled", False):
+            return
+
+        import comfy_aimdo.control as aimdo_control
+
+        if getattr(aimdo_control, "lib", None) is None:
+            return
+
+        try:
+            aimdo_control.init(simple_vram_headroom=int(reserved_vram))
+        except TypeError:
+            setter = getattr(aimdo_control.lib, "set_simple_vram_headroom", None)
+            if setter is not None:
+                setter(int(reserved_vram))
+    except Exception as e:
+        print(f"[ReservedVRAM]同步DynamicVRAM预留显存失败: {e}")
+
 def new_random_seed():
     """生成一个新的随机种子"""
     global reserved_vram_random_state
@@ -144,17 +174,17 @@ class ReservedVRAMSetter:
                     print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB, 最大限制值{auto_max_reserved:.2f}GB)')
                 else:
                     print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB)')
-                model_management.EXTRA_RESERVED_VRAM = int(auto_reserved * 1024 * 1024 * 1024)
+                set_reserved_vram(auto_reserved)
                 final_reserved_vram = round(auto_reserved, 2)
             else:
                 manual_reserved = max(0, reserved)
-                model_management.EXTRA_RESERVED_VRAM = int(manual_reserved * 1024 * 1024 * 1024)
+                set_reserved_vram(manual_reserved)
                 print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={manual_reserved}GB (自动模式不可用，使用手动值)')
                 final_reserved_vram = round(manual_reserved, 2)
         else:
             # 手动模式
             reserved = max(0, reserved)
-            model_management.EXTRA_RESERVED_VRAM = int(reserved * 1024 * 1024 * 1024)
+            set_reserved_vram(reserved)
             print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={reserved}GB (手动模式)，忽略最大限制值')
             final_reserved_vram = round(reserved, 2)
 

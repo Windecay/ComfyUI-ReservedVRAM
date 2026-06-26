@@ -37,3 +37,9 @@ new
 ![_$)59`(5~XN5OH7NM %WHU](https://github.com/user-attachments/assets/bb652d70-805b-452e-a522-f271c8c70bf4)
 
 ![image](https://github.com/user-attachments/assets/48f8ca7f-2a13-4ef5-a5bb-5f6ef9c974e3)
+
+2026-06-27 DynamicVRAM compatibility update
+
+- The node now updates ComfyUI DynamicVRAM / comfy-aimdo simple vram headroom when DynamicVRAM is enabled.
+- On ComfyUI builds that provide `model_management.set_extra_reserved_vram()`, the node uses that runtime API. On official builds without that API, it still updates `EXTRA_RESERVED_VRAM` and then syncs DynamicVRAM headroom from the node itself.
+- Auto mode can use torch CUDA memory info when NVML is unavailable or fails to initialize.
