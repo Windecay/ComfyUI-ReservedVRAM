@@ -3,9 +3,15 @@ from comfy import model_management
 import random
 import time
 import gc
-# 尝试导入pynvml库，如果没有安装则提供相应提示
+# 尝试导入 pynvml；在部分 AMD/Intel 环境里，导入阶段本身就可能因为缺少 NVML DLL 直接抛异常。
 try:
     import pynvml
+except Exception as e:
+    pynvml_installed = False
+    pynvml = None
+    print("[ReservedVRAM]警告：pynvml不可用，auto选项将不可用。")
+    print(f"[ReservedVRAM]pynvml导入失败: {e}")
+else:
     try:
         pynvml.nvmlInit()
         pynvml_installed = True
@@ -14,10 +20,6 @@ try:
         pynvml = None
         print("[ReservedVRAM]警告：pynvml可导入但NVML初始化失败，auto选项将不可用。")
         print(f"[ReservedVRAM]NVML初始化失败: {e}")
-except ImportError:
-    pynvml_installed = False
-    pynvml = None
-    print("[ReservedVRAM]警告：未安装pynvml库，auto选项将不可用。")
 
 # 初始化随机状态
 initial_random_state = random.getstate()
@@ -167,8 +169,10 @@ class ReservedVRAMSetter:
         if mode == "auto":
             total, used = get_gpu_memory_info()
             if total is not None and used is not None:
+                # 自动计算预留显存
                 auto_reserved = used + reserved
                 auto_reserved = max(0, auto_reserved)
+                # 如果设置了最大预留值且大于0，则应用限制
                 if auto_max_reserved > 0:
                     auto_reserved = min(auto_reserved, auto_max_reserved)
                     print(f'[ReservedVRAM]set EXTRA_RESERVED_VRAM={auto_reserved:.2f}GB (自动模式: 总显存={total:.2f}GB, 已用={used:.2f}GB, 最大限制值{auto_max_reserved:.2f}GB)')

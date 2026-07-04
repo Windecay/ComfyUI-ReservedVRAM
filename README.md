@@ -19,7 +19,8 @@ new
 2. Front-end input can be left unconnected. Added back-end output for random seed and reserved value. Back-end output can also be left unconnected.
 3. Added a front-end VRAM cleanup toggle, allowing use as a VRAM cleanup node. Option to restore environment variables to default (0.6GB) manually before output.
 4. Added maximum reserved value, effective in Auto mode, preventing excessive reservation in certain cases while slightly reducing Auto mode's capability.
-<img width="1919" height="1461" alt="image" src="https://github.com/user-attachments/assets/5b3af05d-5051-4fc9-b2e7-fd7cb7cfe719" />
+
+![example](image/example.jpg)
 
 2025-10-10新增自动模式，自动模式会检测系统“已使用”的显存数量，再叠加用户设置值进行预留。避免多进程用户因为显存问题卡住运行。
 
@@ -29,14 +30,6 @@ new
 一个可以实时调节工作流预留显存的简单节点，跑满显卡最大功率，解除显存焦虑。
 
 接在排行较前的节点处即可，观察windows任务管理器共享显存溢出多少，就需要设置保留多少（可以略微多一点），填入该数值。运行工作流实时生效，输入单位是GB。
-
-![N57)EGC5978{(Y36IV~13AL](https://github.com/user-attachments/assets/245e5f11-c16d-403c-a438-567040f12ebf)
-
-![19~HL`3H{F %%LBE)3~3GPC](https://github.com/user-attachments/assets/fd8b61e4-e2e5-42ca-a516-2ddc1c7d0d8d)
-
-![_$)59`(5~XN5OH7NM %WHU](https://github.com/user-attachments/assets/bb652d70-805b-452e-a522-f271c8c70bf4)
-
-![image](https://github.com/user-attachments/assets/48f8ca7f-2a13-4ef5-a5bb-5f6ef9c974e3)
 
 2026-06-27 DynamicVRAM compatibility update
 
