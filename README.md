@@ -1,5 +1,16 @@
 A simple node that can dynamically adjust the reserved memory of a workflow in real-time.
 
+## 2026-09-08 DynamicVRAM 兼容修复
+
+- 调整预留显存不再重新调用 aimdo 的 `init()`，避免重置原有 NVML 压力检测开关。
+- 使用 aimdo 0.4.10 和 0.5.2 均提供的专用 headroom setter；未启用 DynamicVRAM、aimdo 不可用或旧版本缺少该接口时，仍保留普通显存预留功能。
+- 使用 ComfyUI 运行时接口后，同步实际生效的预留值，不覆盖 ComfyUI 的默认下限。
+- 节点参数、输入输出和现有工作流保持兼容，不强制安装或升级 aimdo。
+- 旧版 SimpAI Studio 的运行时预留接口也有同类调用，需要同步更新 Studio；仅更新节点不能修复旧接口内部的行为。
+- 此修复针对设置被意外重置的问题，不保证解决所有 OOM；运行中的后端需要重启后加载修改。
+
+本地兼容测试：`python -m unittest discover -s tests -v`。测试使用模拟后端，不启动 GPU 或生成任务。
+
 更新
 ##新版ComfyUI具有Pin Memory特性，会直接显示部分卸载到内存的模型为共享显存的使用。只要调节到采样速度和显卡功耗正常就可以。
 

@@ -61,6 +61,7 @@ def set_reserved_vram(reserved_gb):
     reserved_vram = int(reserved_gb * 1024 * 1024 * 1024)
     if hasattr(model_management, "set_extra_reserved_vram"):
         model_management.set_extra_reserved_vram(reserved_gb)
+        reserved_vram = model_management.EXTRA_RESERVED_VRAM
     else:
         model_management.EXTRA_RESERVED_VRAM = reserved_vram
     sync_dynamic_vram_headroom(reserved_vram)
@@ -77,12 +78,10 @@ def sync_dynamic_vram_headroom(reserved_vram):
         if getattr(aimdo_control, "lib", None) is None:
             return
 
-        try:
-            aimdo_control.init(simple_vram_headroom=int(reserved_vram))
-        except TypeError:
-            setter = getattr(aimdo_control.lib, "set_simple_vram_headroom", None)
-            if setter is not None:
-                setter(int(reserved_vram))
+        # Re-running init() can reset unrelated settings such as NVML pressure.
+        setter = getattr(aimdo_control.lib, "set_simple_vram_headroom", None)
+        if setter is not None:
+            setter(int(reserved_vram))
     except Exception as e:
         print(f"[ReservedVRAM]同步DynamicVRAM预留显存失败: {e}")
 
